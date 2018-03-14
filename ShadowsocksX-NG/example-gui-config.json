@@ -25,20 +25,28 @@
         "server": "abc.xyz",
         "server_port": 1234,
         "method": "rc4-md5",
+        "obfs": "tls1.2_ticket_auth",
+        "obfsparam": "baidu.com",
         "remarks_base64": "ZXhhbXBsZQ==",
         "password": "passwd",
         "tcp_over_udp": false,
         "udp_over_tcp": false,
+        "protocol": "auth_sha1_v2",
+        "obfs_udp": false,
         "enable": true
     },{
         "remarks": "example2",
         "server": "xyz.xyz",
         "server_port": 1234,
         "method": "rc4-md5",
+        "obfs": "tls1.2_ticket_auth",
+        "obfsparam": "baidu.com",
         "remarks_base64": "ZXhhbXBsZTI=",
         "password": "passwd",
         "tcp_over_udp": false,
         "udp_over_tcp": false,
+        "protocol": "auth_sha1_v2",
+        "obfs_udp": false,
         "enable": true
     }]
 }

@@ -2,7 +2,7 @@
 //  ServerProfileManager.swift
 //  ShadowsocksX-NG
 //
-//  Created by 邱宇舟 on 16/6/6. Modified by 秦宇航 16/9/12
+//  Created by 邱宇舟 on 16/6/6. Modified by 秦宇航 17/7/22 
 //  Copyright © 2016年 qiuyuzhou. All rights reserved.
 //
 
@@ -19,19 +19,43 @@ class ServerProfileManager: NSObject {
         profiles = [ServerProfile]()
         
         let defaults = UserDefaults.standard
+        activeProfileId = defaults.string(forKey: "ActiveServerProfileId")
+        var didFindActiveProfileId = false
         if let _profiles = defaults.array(forKey: "ServerProfiles") {
             for _profile in _profiles {
-                let profile = ServerProfile.fromDictionary(_profile as! [String: Any])
+                let profile = ServerProfile.fromDictionary(_profile as! [String : AnyObject])
                 profiles.append(profile)
+                if profile.uuid == activeProfileId {
+                    didFindActiveProfileId = true
+                }
             }
         }
-        activeProfileId = defaults.string(forKey: "ActiveServerProfileId")
+        if profiles.count == 0{
+            let notice = NSUserNotification()
+            notice.title = "还没有服务器设定！"
+            notice.subtitle = "去设置里面填一下吧，填完记得选择呦~"
+            NSUserNotificationCenter.default.deliver(notice)
+            return
+        }
+        if !didFindActiveProfileId {
+            activeProfileId = profiles[0].uuid
+        }
     }
     
     func setActiveProfiledId(_ id: String) {
         activeProfileId = id
         let defaults = UserDefaults.standard
         defaults.set(id, forKey: "ActiveServerProfileId")
+    }
+    
+    func getActiveProfileId() -> String {
+        for p in profiles {
+            if p.uuid == activeProfileId {
+                return activeProfileId!
+            }
+        }
+        if profiles.count == 0 {return ""}
+        return profiles[0].uuid
     }
     
     func save() {
@@ -46,12 +70,12 @@ class ServerProfileManager: NSObject {
         defaults.set(_profiles, forKey: "ServerProfiles")
         
         if getActiveProfile() == nil {
-            activeProfileId = nil
+            activeProfileId = ""
         }
         
-        if activeProfileId != nil {
-            defaults.set(activeProfileId, forKey: "ActiveServerProfileId")
-            _ = writeSSLocalConfFile((getActiveProfile()?.toJsonConfig())!)
+        if getActiveProfileId() != "" {
+            defaults.set(getActiveProfileId(), forKey: "ActiveServerProfileId")
+            let _ = writeSSLocalConfFile((getActiveProfile()?.toJsonConfig())!)
         } else {
             defaults.removeObject(forKey: "ActiveServerProfileId")
             removeSSLocalConfFile()
@@ -59,18 +83,42 @@ class ServerProfileManager: NSObject {
     }
     
     func getActiveProfile() -> ServerProfile? {
-        if let id = activeProfileId {
-            for p in profiles {
-                if p.uuid == id {
-                    return p
-                }
+        if getActiveProfileId() == "" { return nil }
+        for p in profiles {
+            if p.uuid == getActiveProfileId() {
+                return p
             }
-            return nil
-        } else {
-            return nil
         }
+        return nil
     }
     
+    func isExisted(profile: ServerProfile) -> (Bool, Int){
+        for (index, value) in profiles.enumerated() {
+            let ret = value.serverHost == profile.serverHost
+            if ret {
+                return (ret, index)
+            }
+        }
+        return (false, -1)
+    }
+    
+    func isDuplicated(profile: ServerProfile) -> (Bool, Int){
+        for (index, value) in profiles.enumerated() {
+            let ret = value.serverHost == profile.serverHost
+                && value.password == profile.password
+                && value.serverPort == profile.serverPort
+                && value.ssrProtocol == profile.ssrProtocol
+                && value.ssrObfs == profile.ssrObfs
+                && value.ssrObfsParam == profile.ssrObfsParam
+                && value.ssrProtocolParam == profile.ssrProtocolParam
+                && value.remark == profile.remark
+            if ret {
+                return (ret, index)
+            }
+        }
+        return (false, -1)
+    }
+
     func importConfigFile() {
         let openPanel = NSOpenPanel()
         openPanel.title = "Choose Config Json File".localized
@@ -79,48 +127,56 @@ class ServerProfileManager: NSObject {
         openPanel.canCreateDirectories = false
         openPanel.canChooseFiles = true
         openPanel.becomeKey()
-        let result = openPanel.runModal()
-        if (result == NSFileHandlingPanelOKButton && (openPanel.url) != nil) {
-            let fileManager = FileManager.default
-            let filePath:String = (openPanel.url?.path)!
-            if (fileManager.fileExists(atPath: filePath) && filePath.hasSuffix("json")) {
-                let data = fileManager.contents(atPath: filePath)
-                let readString = NSString(data: data!, encoding: String.Encoding.utf8.rawValue)!
-                let readStringData = readString.data(using: String.Encoding.utf8.rawValue)
-                
-                let jsonArr1 = try! JSONSerialization.jsonObject(with: readStringData!, options: JSONSerialization.ReadingOptions.mutableContainers) as! NSDictionary
-                
-                for item in jsonArr1.object(forKey: "configs") as! [[String: AnyObject]]{
-                    let profile = ServerProfile()
-                    profile.serverHost = item["server"] as! String
-                    profile.serverPort = UInt16((item["server_port"]?.integerValue)!)
-                    profile.method = item["method"] as! String
-                    profile.password = item["password"] as! String
-                    profile.remark = item["remarks"] as! String
+        openPanel.begin { (result) -> Void in
+            // TODO not freeze the screen when running import process
+            if (result == NSFileHandlingPanelOKButton && (openPanel.url) != nil) {
+                let fileManager = FileManager.default
+                let filePath:String = (openPanel.url?.path)!
+                if (fileManager.fileExists(atPath: filePath) && filePath.hasSuffix("json")) {
+                    let data = fileManager.contents(atPath: filePath)
+                    let readString = NSString(data: data!, encoding: String.Encoding.utf8.rawValue)!
+                    let readStringData = readString.data(using: String.Encoding.utf8.rawValue)
                     
-                    // Kcptun
-                    profile.enabledKcptun = item["enabled_kcptun"]?.boolValue ?? false
-                    if let kcptun = item["kcptun"] {
-                        profile.kcptunProfile = KcptunProfile.fromDictionary(kcptun as! [String : Any?])
+                    let jsonArr1 = try! JSONSerialization.jsonObject(with: readStringData!, options: JSONSerialization.ReadingOptions.mutableContainers) as! NSDictionary
+                    
+                    for item in jsonArr1.object(forKey: "configs") as! [[String: AnyObject]]{
+                        let profile = ServerProfile()
+                        profile.serverHost = item["server"] as! String
+                        profile.serverPort = UInt16((item["server_port"] as! Int))
+                        profile.method = item["method"] as! String
+                        profile.password = item["password"] as! String
+                        profile.remark = item["remarks"] as! String
+                        if(item["group"] != nil){
+                            profile.ssrGroup = item["group"] as! String
+                        }
+                        if (item["obfs"] != nil) {
+                            profile.ssrObfs = item["obfs"] as! String
+                            profile.ssrProtocol = item["protocol"] as! String
+                            if (item["obfsparam"] != nil){
+                                profile.ssrObfsParam = item["obfsparam"] as! String
+                            }
+                            if (item["protocolparam"] != nil){
+                                profile.ssrProtocolParam = item["protocolparam"] as! String
+                            }
+                        }
+                        self.profiles.append(profile)
+                        self.save()
                     }
-                    
-                    self.profiles.append(profile)
-                    self.save()
+                    NotificationCenter.default.post(name: Notification.Name(rawValue: NOTIFY_SERVER_PROFILES_CHANGED), object: nil)
+                    let configsCount = (jsonArr1.object(forKey: "configs") as! [[String: AnyObject]]).count
+                    let notification = NSUserNotification()
+                    notification.title = "Import Server Profile succeed!".localized
+                    notification.informativeText = "Successful import \(configsCount) items".localized
+                    NSUserNotificationCenter.default
+                        .deliver(notification)
+                }else{
+                    let notification = NSUserNotification()
+                    notification.title = "Import Server Profile failed!".localized
+                    notification.informativeText = "Invalid config file!".localized
+                    NSUserNotificationCenter.default
+                        .deliver(notification)
+                    return
                 }
-                NotificationCenter.default.post(name: NOTIFY_SERVER_PROFILES_CHANGED, object: nil)
-                let configsCount = (jsonArr1.object(forKey: "configs") as! [[String: AnyObject]]).count
-                let notification = NSUserNotification()
-                notification.title = "Import Server Profile succeed!".localized
-                notification.informativeText = "Successful import \(configsCount) items".localized
-                NSUserNotificationCenter.default
-                    .deliver(notification)
-            }else{
-                let notification = NSUserNotification()
-                notification.title = "Import Server Profile failed!".localized
-                notification.informativeText = "Invalid config file!".localized
-                NSUserNotificationCenter.default
-                    .deliver(notification)
-                return
             }
         }
     }
@@ -142,16 +198,25 @@ class ServerProfileManager: NSObject {
             //standard ss profile
             configProfile.setValue(true, forKey: "enable")
             configProfile.setValue(profile.serverHost, forKey: "server")
-            configProfile.setValue(NSNumber(value:profile.serverPort), forKey: "server_port")//not work
+            configProfile.setValue(NSNumber(value: profile.serverPort as UInt16), forKey: "server_port")//not work
             configProfile.setValue(profile.password, forKey: "password")
             configProfile.setValue(profile.method, forKey: "method")
             configProfile.setValue(profile.remark, forKey: "remarks")
             configProfile.setValue(profile.remark.data(using: String.Encoding.utf8)?.base64EncodedString(options: NSData.Base64EncodingOptions(rawValue: 0)), forKey: "remarks_base64")
-            
-            // Kcptun
-            configProfile.setValue(profile.enabledKcptun, forKey: "enabled_kcptun")
-            configProfile.setValue(profile.kcptunProfile.toDictionary(), forKey: "kcptun")
-            
+            //ssr
+            if  profile.ssrObfs != "" {
+                configProfile.setValue(profile.ssrObfs, forKey: "obfs")
+                configProfile.setValue(profile.ssrProtocol, forKey: "protocol")
+                if profile.ssrObfsParam != "" {
+                    configProfile.setValue(profile.ssrObfsParam, forKey: "obfsparam")
+                }
+                if profile.ssrProtocolParam != "" {
+                    configProfile.setValue(profile.ssrProtocolParam, forKey: "protocolparam")
+                }
+            }
+            if profile.ssrGroup != "" {
+                configProfile.setValue(profile.ssrGroup, forKey: "group")
+            }
             configsArray.add(configProfile)
         }
         jsonArr1.setValue(configsArray, forKey: "configs")
@@ -163,16 +228,17 @@ class ServerProfileManager: NSObject {
         savePanel.allowedFileTypes = ["json"]
         savePanel.nameFieldStringValue = "export.json"
         savePanel.becomeKey()
-        let result = savePanel.runModal()
-        if (result == NSFileHandlingPanelOKButton && (savePanel.url) != nil) {
-            //write jsonArr1 back to file
-            try! jsonString.write(toFile: (savePanel.url?.path)!, atomically: true, encoding: String.Encoding.utf8)
-            NSWorkspace.shared().selectFile((savePanel.url?.path)!, inFileViewerRootedAtPath: (savePanel.directoryURL?.path)!)
-            let notification = NSUserNotification()
-            notification.title = "Export Server Profile succeed!".localized
-            notification.informativeText = "Successful Export \(self.profiles.count) items".localized
-            NSUserNotificationCenter.default
-                .deliver(notification)
+        savePanel.begin { (result) -> Void in
+            if (result == NSFileHandlingPanelOKButton && (savePanel.url) != nil) {
+                //write jsonArr1 back to file
+                try! jsonString.write(toFile: (savePanel.url?.path)!, atomically: true, encoding: String.Encoding.utf8)
+                NSWorkspace.shared().selectFile((savePanel.url?.path)!, inFileViewerRootedAtPath: (savePanel.directoryURL?.path)!)
+                let notification = NSUserNotification()
+                notification.title = "Export Server Profile succeed!".localized
+                notification.informativeText = "Successful Export \(self.profiles.count) items".localized
+                NSUserNotificationCenter.default
+                    .deliver(notification)
+            }
         }
     }
     

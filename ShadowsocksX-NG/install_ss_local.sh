@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 #  install_ss_local.sh
 #  ShadowsocksX-NG
@@ -8,23 +8,12 @@
 
 
 cd `dirname "${BASH_SOURCE[0]}"`
+ssLocalVersion=2.5.6.9.static
+mkdir -p "$HOME/Library/Application Support/ShadowsocksX-NG/ss-local-$ssLocalVersion"
+cp -f ss-local "$HOME/Library/Application Support/ShadowsocksX-NG/ss-local-$ssLocalVersion/"
+rm -f "$HOME/Library/Application Support/ShadowsocksX-NG/ss-local"
+ln -s "$HOME/Library/Application Support/ShadowsocksX-NG/ss-local-$ssLocalVersion/ss-local" "$HOME/Library/Application Support/ShadowsocksX-NG/ss-local"
 
-NGDir="$HOME/Library/Application Support/ShadowsocksX-NG"
-TargetDir="$NGDir/ss-local-3.0.5"
-LatestTargetDir="$NGDir/ss-local-latest"
-
-echo ngdir: ${NGDir}
-
-mkdir -p "$TargetDir"
-cp -f ss-local "$TargetDir"
-rm -f "$LatestTargetDir"
-ln -s "$TargetDir" "$LatestTargetDir"
-
-cp -f libev.4.dylib "$TargetDir"
-cp -f libmbedcrypto.2.4.2.dylib "$TargetDir"
-ln -s  "$TargetDir/libmbedcrypto.2.4.2.dylib" "$TargetDir/libmbedcrypto.0.dylib"
-cp -f libpcre.1.dylib "$TargetDir"
-cp -f libsodium.18.dylib "$TargetDir"
-cp -f libudns.0.dylib "$TargetDir"
+cp -f libcrypto.1.0.0.dylib "$HOME/Library/Application Support/ShadowsocksX-NG/"
 
 echo done

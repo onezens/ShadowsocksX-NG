@@ -13,7 +13,7 @@
 
 @implementation ProxyConfHelper
 
-GCDWebServer *webServer =nil;
+GCDWebServer *webServer = nil;
 
 + (BOOL)isVersionOk {
     NSTask *task;
@@ -114,18 +114,14 @@ GCDWebServer *webServer =nil;
     }
 }
 
-+ (NSString*)getPACFilePath {
-    return [NSString stringWithFormat:@"%@/%@", NSHomeDirectory(), @".ShadowsocksX-NG/gfwlist.js"];
-}
-
-+ (void)enablePACProxy {
++ (void)enablePACProxy:(NSString*) PACFilePath {
     //start server here and then using the string next line
     //next two lines can open gcdwebserver and work around pac file
-    NSString* PACFilePath = [self getPACFilePath];
-    [self startPACServer: PACFilePath];
-    
-    NSURL* url = [NSURL URLWithString: [self getHttpPACUrl]];
-    
+    NSString *PACURLString = [self startPACServer: PACFilePath];//hi 可以切换成定制pac文件路径来达成使用定制文件路径
+    NSURL* url = [NSURL URLWithString: PACURLString];
+//    NSString* urlString = [NSString stringWithFormat:@"%@/.ShadowsocksX-NG/gfwlist.js", NSHomeDirectory()];
+//    NSURL* url = [NSURL fileURLWithPath:urlString];
+
     NSMutableArray* args = [@[@"--mode", @"auto", @"--pac-url", [url absoluteString]]mutableCopy];
     
     [self addArguments4ManualSpecifyNetworkServices:args];
@@ -138,106 +134,92 @@ GCDWebServer *webServer =nil;
     NSMutableArray* args = [@[@"--mode", @"global", @"--port"
                               , [NSString stringWithFormat:@"%lu", (unsigned long)port]]mutableCopy];
     
-    // Because issue #106 https://github.com/shadowsocks/ShadowsocksX-NG/issues/106
-    // Comment below out.
-//    if ([[NSUserDefaults standardUserDefaults] boolForKey:@"LocalHTTPOn"] && [[NSUserDefaults standardUserDefaults] boolForKey:@"LocalHTTP.FollowGlobal"]) {
-//        NSUInteger privoxyPort = [[NSUserDefaults standardUserDefaults]integerForKey:@"LocalHTTP.ListenPort"];
-//
-//        [args addObject:@"--privoxy-port"];
-//        [args addObject:[NSString stringWithFormat:@"%lu", (unsigned long)privoxyPort]];
-//    }
+    if ([[NSUserDefaults standardUserDefaults] boolForKey:@"LocalHTTPOn"] && [[NSUserDefaults standardUserDefaults] boolForKey:@"LocalHTTP.FollowGlobal"]) {
+        NSUInteger privoxyPort = [[NSUserDefaults standardUserDefaults]integerForKey:@"LocalHTTP.ListenPort"];
+
+        [args addObject:@"--privoxy-port"];
+        [args addObject:[NSString stringWithFormat:@"%lu", (unsigned long)privoxyPort]];
+    }
     
     [self addArguments4ManualSpecifyNetworkServices:args];
     [self callHelper:args];
     [self stopPACServer];
 }
 
-+ (void)disableProxy {
-    // 带上所有参数是为了判断是否原有代理设置是否由ssx-ng设置的。如果是用户手工设置的其他配置，则不进行清空。
-    NSURL* url = [NSURL URLWithString: [self getHttpPACUrl]];
++ (void)enableWhiteListProxy {
+    // 基于全局socks5代理下使用ACL文件来进行白名单代理 不需要使用pac文件
     NSUInteger port = [[NSUserDefaults standardUserDefaults]integerForKey:@"LocalSocks5.ListenPort"];
     
-    NSMutableArray* args = [@[@"--mode", @"off"
-                              , @"--port", [NSString stringWithFormat:@"%lu", (unsigned long)port]
-                              , @"--pac-url", [url absoluteString]
-                              ]mutableCopy];
+    NSMutableArray* args = [@[@"--mode", @"global", @"--port"
+                              , [NSString stringWithFormat:@"%lu", (unsigned long)port]]mutableCopy];
+    
+    if ([[NSUserDefaults standardUserDefaults] boolForKey:@"LocalHTTPOn"] && [[NSUserDefaults standardUserDefaults] boolForKey:@"LocalHTTP.FollowGlobal"]) {
+        NSUInteger privoxyPort = [[NSUserDefaults standardUserDefaults]integerForKey:@"LocalHTTP.ListenPort"];
+        
+        [args addObject:@"--privoxy-port"];
+        [args addObject:[NSString stringWithFormat:@"%lu", (unsigned long)privoxyPort]];
+    }
+    
     [self addArguments4ManualSpecifyNetworkServices:args];
     [self callHelper:args];
     [self stopPACServer];
 }
 
-+ (NSString*)getHttpPACUrl {
-    NSString * routerPath = @"/proxy.pac";
-    
-    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
++ (void)disableProxy:(NSString*) PACFilePath {
+//    带上所有参数是为了判断是否原有代理设置是否由ssx-ng设置的。如果是用户手工设置的其他配置，则不进行清空。
+//    NSString* urlString = [NSString stringWithFormat:@"%@/.ShadowsocksX-NG/gfwlist.js", NSHomeDirectory()];
+//    NSURL* url = [NSURL fileURLWithPath:urlString];
+//    NSString *PACURLString = [self startPACServer: PACFilePath];//hi 可以切换成定制pac文件路径来达成使用定制文件路径
+//    NSURL* url = [NSURL URLWithString: PACURLString];
+//    NSUInteger port = [[NSUserDefaults standardUserDefaults]integerForKey:@"LocalSocks5.ListenPort"];
+//
+//    NSMutableArray* args = [@[@"--mode", @"off"
+//                              , @"--port", [NSString stringWithFormat:@"%lu", (unsigned long)port]
+//                              , @"--pac-url", [url absoluteString]
+//                              ]mutableCopy];
 
-    NSString * address = @"127.0.0.1";
+    NSMutableArray* args = [@[@"--mode", @"off"]mutableCopy];
+    [self addArguments4ManualSpecifyNetworkServices:args];
+    [self callHelper:args];
+    [self stopPACServer];
+}
+
++ (NSString*)startPACServer:(NSString*) PACFilePath {
+    //接受参数为以后使用定制PAC文件
+    NSData * originalPACData;
+    NSString * routerPath = @"/proxy.pac";
+    if ([PACFilePath isEqual: @"hi"]) {//用默认路径来代替
+        PACFilePath = [NSString stringWithFormat:@"%@/%@", NSHomeDirectory(), @".ShadowsocksX-NG/gfwlist.js"];
+        originalPACData = [NSData dataWithContentsOfFile: [NSString stringWithFormat:@"%@/%@", NSHomeDirectory(), @".ShadowsocksX-NG/gfwlist.js"]];
+    }else{//用定制路径来代替
+        originalPACData = [NSData dataWithContentsOfFile: [NSString stringWithFormat:@"%@/%@/%@", NSHomeDirectory(), @".ShadowsocksX-NG", PACFilePath]];
+        routerPath = [NSString stringWithFormat:@"/%@",PACFilePath];
+    }
+    [self stopPACServer];
+    webServer = [[GCDWebServer alloc] init];
+    [webServer addHandlerForMethod:@"GET" path: routerPath requestClass:[GCDWebServerRequest class] processBlock:^GCDWebServerResponse *(GCDWebServerRequest *request) {
+        return [GCDWebServerDataResponse responseWithData: originalPACData contentType:@"application/x-ns-proxy-autoconfig"];
+    }
+     ];
+    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+    NSString * address = [defaults stringForKey:@"PacServer.ListenAddress"];
     int port = (short)[defaults integerForKey:@"PacServer.ListenPort"];
-    
+
+//    NSMutableDictionary* options = [NSMutableDictionary dictionary];
+//    [options setObject:[NSNumber numberWithInteger:port] forKey:GCDWebServerOption_Port];
+//    [options setObject:@YES forKey:@"BindToLocalhost"];
+//    
+//    [webServer startWithOptions:options error:NULL];
+
+    [webServer startWithOptions:@{@"BindToLocalhost":@YES, @"Port":@(port)} error:nil];
+
     return [NSString stringWithFormat:@"%@%@:%d%@",@"http://",address,port,routerPath];
 }
 
-+ (void)startPACServer:(NSString*) PACFilePath {
-    [self stopPACServer];
-    
-    NSString * routerPath = @"/proxy.pac";
-    
-    NSData* originalPACData = [NSData dataWithContentsOfFile:PACFilePath];
-    
-    webServer = [[GCDWebServer alloc] init];
-    [webServer addHandlerForMethod:@"GET"
-                              path:routerPath
-                      requestClass:[GCDWebServerRequest class]
-                      processBlock:^GCDWebServerResponse *(GCDWebServerRequest *request)
-    {
-        GCDWebServerDataResponse* resp = [GCDWebServerDataResponse responseWithData:originalPACData
-                                                                        contentType:@"application/x-ns-proxy-autoconfig"];
-        return resp;
-    }
-     ];
-    
-    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-    
-    int port = (short)[defaults integerForKey:@"PacServer.ListenPort"];
-    
-    [webServer startWithOptions:@{@"BindToLocalhost":@YES, @"Port":@(port)} error:nil];
-}
-
 + (void)stopPACServer {
-    //原版似乎没有处理这个，本来设计计划如果切换到全局模式或者手动模式就关掉webserver 似乎没有这个必要了？
     if ([webServer isRunning]) {
         [webServer stop];
     }
-}
-
-+ (void)startMonitorPAC {
-    NSString* PACFilePath = [self getPACFilePath];
-    dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
-    int fileId = open([PACFilePath UTF8String], O_EVTONLY);
-    __block dispatch_source_t source = dispatch_source_create(DISPATCH_SOURCE_TYPE_VNODE, fileId,
-                                                              DISPATCH_VNODE_DELETE | DISPATCH_VNODE_WRITE | DISPATCH_VNODE_EXTEND | DISPATCH_VNODE_ATTRIB | DISPATCH_VNODE_LINK | DISPATCH_VNODE_RENAME | DISPATCH_VNODE_REVOKE,
-                                                              queue);
-    dispatch_source_set_event_handler(source, ^
-                                      {
-                                          unsigned long flags = dispatch_source_get_data(source);
-                                          if(flags & DISPATCH_VNODE_DELETE)
-                                          {
-                                              dispatch_source_cancel(source);
-                                          } else {
-                                              NSUserDefaults* defaults = [NSUserDefaults standardUserDefaults];
-                                              if ([defaults boolForKey:@"ShadowsocksOn"]) {
-                                                  if ([[defaults stringForKey:@"ShadowsocksRunningMode"] isEqualToString:@"auto"]) {
-                                                      [ProxyConfHelper disableProxy];
-                                                      [ProxyConfHelper enablePACProxy];
-                                                  }
-                                              }
-                                          }
-                                      });
-    dispatch_source_set_cancel_handler(source, ^(void) 
-                                       {
-                                           close(fileId);
-                                       });
-    dispatch_resume(source);
 }
 
 @end

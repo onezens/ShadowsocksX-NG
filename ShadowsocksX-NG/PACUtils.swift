@@ -16,6 +16,9 @@ let PACUserRuleFilePath = PACRulesDirPath + "user-rule.txt"
 let PACFilePath = PACRulesDirPath + "gfwlist.js"
 let GFWListFilePath = PACRulesDirPath + "gfwlist.txt"
 
+let ACLWhiteListFilePath = PACRulesDirPath + "chn.acl"
+let ACLBackCHNFilePath = PACRulesDirPath + "backchn.acl"
+let ACLGFWListFilePath = PACRulesDirPath + "gfwlist.acl"
 
 // Because of LocalSocks5.ListenPort may be changed
 func SyncPac() {
@@ -30,6 +33,10 @@ func SyncPac() {
     
     let fileMgr = FileManager.default
     if !fileMgr.fileExists(atPath: PACRulesDirPath) {
+        needGenerate = true
+    }
+    
+    if !fileMgr.fileExists(atPath: ACLWhiteListFilePath) && !fileMgr.fileExists(atPath: ACLBackCHNFilePath) {
         needGenerate = true
     }
     
@@ -65,6 +72,25 @@ func GeneratePACFile() -> Bool {
         try! fileMgr.copyItem(atPath: src!, toPath: PACUserRuleFilePath)
     }
     
+    // If chn.acl is not exsited, copy from bundle
+    if !fileMgr.fileExists(atPath: ACLWhiteListFilePath) {
+        let src = Bundle.main.path(forResource: "chn", ofType: "acl")
+        try! fileMgr.copyItem(atPath: src!, toPath: ACLWhiteListFilePath)
+    }
+    
+    // If backchn is not exsited, copy from bundle
+    if !fileMgr.fileExists(atPath: ACLBackCHNFilePath) {
+        let src = Bundle.main.path(forResource: "backchn", ofType: "acl")
+        try! fileMgr.copyItem(atPath: src!, toPath: ACLBackCHNFilePath)
+
+    }
+    // If chn.acl
+    if !fileMgr.fileExists(atPath: ACLGFWListFilePath) {
+        let src = Bundle.main.path(forResource: "gfwlist", ofType: "acl")
+        try! fileMgr.copyItem(atPath: src!, toPath: ACLGFWListFilePath)
+        
+    }
+    
     let socks5Port = UserDefaults.standard.integer(forKey: "LocalSocks5.ListenPort")
     
     do {
@@ -78,6 +104,7 @@ func GeneratePACFile() -> Bool {
                 let userRuleLines = userRuleStr.components(separatedBy: CharacterSet.newlines)
                 
                 lines = userRuleLines + lines
+                ACLFromUserRule(userRuleLines: userRuleLines)
             } catch {
                 NSLog("Not found user-rule.txt")
             }
@@ -165,4 +192,108 @@ func UpdatePACFromGFWList() {
                     .deliver(notification)
             }
         }
+}
+func ACLFromUserRule(userRuleLines:[String]){
+    do {
+        var AutoACL = try String(contentsOfFile: ACLGFWListFilePath, encoding: String.Encoding.utf8)
+        var WhiteACL = try String(contentsOfFile: ACLWhiteListFilePath, encoding: String.Encoding.utf8)
+        let rule = userRuleLines.filter({ (s: String) -> Bool in
+            if s.isEmpty {
+                return false
+            }
+            let c = s[s.startIndex]
+            if c == "!" || c == "[" {
+                return false
+            }
+            return true
+        })
+        rule.forEach({ (s: String) -> Void in
+            // add the @@ to whitelist and other to GFWList
+            if (s.hasPrefix("@@")){
+                let str = s.replacingOccurrences(of: "@@", with: "").components(separatedBy: ".").joined(separator:"\\.").replacingOccurrences(of: "*\\.", with: "^(.*\\.)?")
+                if (!WhiteACL.contains(str)){
+                    WhiteACL += (str + "$\n")
+
+                }
+            }
+            if (s.hasPrefix("||")){
+                let str = s.replacingOccurrences(of: "||", with: "").components(separatedBy: ".").joined(separator:"\\.").replacingOccurrences(of: "*\\.", with: "^(.*\\.)?")
+                if (!AutoACL.contains(str)){
+                    AutoACL += (str + "$\n")
+                }
+            }
+        })
+        // write file back to ACL
+        try WhiteACL.data(using: String.Encoding.utf8)?
+            .write(to: URL(fileURLWithPath: ACLWhiteListFilePath), options: .atomic)
+        try AutoACL.data(using: String.Encoding.utf8)?
+            .write(to: URL(fileURLWithPath: ACLGFWListFilePath), options: .atomic)
+    } catch {
+        
+    }
+}
+func UpdateACL(){
+    if !FileManager.default.fileExists(atPath: PACRulesDirPath) {
+        do {
+            try FileManager.default.createDirectory(atPath: PACRulesDirPath
+                , withIntermediateDirectories: true, attributes: nil)
+        } catch {
+        }
+    }
+    
+    let url = UserDefaults.standard.string(forKey: "ACLWhiteListURL")
+    Alamofire.request(url!)// request(.GET, url!)
+        .responseString {
+            response in
+            if response.result.isSuccess {
+                if let v = response.result.value {
+                    do {
+                        try v.write(toFile: ACLWhiteListFilePath, atomically: true, encoding: String.Encoding.utf8)
+                        if GeneratePACFile() {
+                            // Popup a user notification
+                            let notification = NSUserNotification()
+                            notification.title = "White List update succeed.".localized
+                            NSUserNotificationCenter.default
+                                .deliver(notification)
+                        }
+                    } catch {
+                        
+                    }
+                }
+            } else {
+                // Popup a user notification
+                let notification = NSUserNotification()
+                notification.title = "Failed to download latest White List update succeed.".localized
+                NSUserNotificationCenter.default
+                    .deliver(notification)
+            }
+    }
+    
+    let IPURL = UserDefaults.standard.string(forKey: "ACLAutoListURL")
+    Alamofire.request(IPURL!)
+        .responseString {
+            response in
+            if response.result.isSuccess {
+                if let v = response.result.value {
+                    do {
+                        try v.write(toFile: ACLGFWListFilePath, atomically: true, encoding: String.Encoding.utf8)
+                        if GeneratePACFile() {
+                            // Popup a user notification
+                            let notification = NSUserNotification()
+                            notification.title = "White List update succeed.".localized
+                            NSUserNotificationCenter.default
+                                .deliver(notification)
+                        }
+                    } catch {
+                        
+                    }
+                }
+            } else {
+                // Popup a user notification
+                let notification = NSUserNotification()
+                notification.title = "Failed to download latest White List update succeed.".localized
+                NSUserNotificationCenter.default
+                    .deliver(notification)
+            }
+    }
 }

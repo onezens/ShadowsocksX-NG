@@ -14,12 +14,16 @@
 
 + (void)install;
 
-+ (void)enablePACProxy;
++ (void)enablePACProxy:(NSString*) PACFilePath;
 
 + (void)enableGlobalProxy;
 
-+ (void)disableProxy;
++ (void)disableProxy:(NSString*) PACFilePath;
 
-+ (void)startMonitorPAC;
++ (NSString*)startPACServer:(NSString*) PACFilePath;
+
++ (void)stopPACServer;
+
++ (void)enableWhiteListProxy;
 
 @end

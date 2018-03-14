@@ -27,6 +27,7 @@
 
 @property(assign) BOOL launchAtLogin;
 
-+ (instancetype) shared;
+- (BOOL) willLaunchAtLogin: (NSURL*) itemURL;
+- (void) setLaunchAtLogin: (BOOL) enabled forURL: (NSURL*) itemURL;
 
 @end
