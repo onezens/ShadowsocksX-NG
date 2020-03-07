@@ -6,7 +6,7 @@ target 'ShadowsocksX-NG' do
   use_frameworks!
 
   # Pods for ShadowsocksX-NG
-  pod 'Alamofire', '~> 4.2.0'
+  pod 'Alamofire'
   pod 'GCDWebServer', '~> 3.0'
 
   target 'ShadowsocksX-NGTests' do
@@ -17,13 +17,13 @@ target 'ShadowsocksX-NG' do
 end
 
 target 'proxy_conf_helper' do
-  pod 'BRLOptionParser', '~> 0.3.1'
+  pod 'BRLOptionParser'
 end
 
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     target.build_configurations.each do |config|
-      config.build_settings['SWIFT_VERSION'] = '3.0'
+      config.build_settings['SWIFT_VERSION'] = '5.0'
     end
   end
 end
