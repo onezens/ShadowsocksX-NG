@@ -30,7 +30,11 @@ class SubscribeManager:NSObject{
                 return true
             }
             if value.isExist(oneSubscribe) {
-                subscribes.replaceSubrange(Range(index..<index + 1), with: [oneSubscribe])
+                if let r = Range(NSMakeRange(index, index+1)) {
+                    subscribes.replaceSubrange( r, with: [oneSubscribe])
+                }
+                
+                
                 return true
             }
         }

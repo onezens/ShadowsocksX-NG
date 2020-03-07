@@ -21,8 +21,10 @@ class UserRulesController: NSWindowController {
             try! fileMgr.copyItem(atPath: src!, toPath: PACUserRuleFilePath)
         }
 
-        let str = try? String(contentsOfFile: PACUserRuleFilePath, encoding: String.Encoding.utf8)
-        userRulesView.string = str
+        if let str = try? String(contentsOfFile: PACUserRuleFilePath, encoding: String.Encoding.utf8) {
+            
+            userRulesView.string = str
+        }
     }
     
     @IBAction func didCancel(_ sender: AnyObject) {
@@ -30,7 +32,9 @@ class UserRulesController: NSWindowController {
     }
 
     @IBAction func didOK(_ sender: AnyObject) {
-        if let str = userRulesView.string {
+        
+        let str = userRulesView.string
+        if str != nil {
             do {
                 try str.data(using: String.Encoding.utf8)?.write(to: URL(fileURLWithPath: PACUserRuleFilePath), options: .atomic)
 

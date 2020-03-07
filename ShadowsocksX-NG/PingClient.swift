@@ -116,7 +116,7 @@ class PingServers:NSObject{
             return nil
         }
         res.removeSubrange(res.range(of: "round-trip min/avg/max/stddev = ")!)
-        res = String(res.characters.dropLast(3))
+        res = String(res.dropLast(3))
         res = res.components(separatedBy: "/")[1]
         let latency = Double(res)
         return latency
@@ -160,8 +160,8 @@ class PingServers:NSObject{
                 }
                 
                 
-                (NSApplication.shared().delegate as! AppDelegate).updateServersMenu()
-                (NSApplication.shared().delegate as! AppDelegate).updateRunningModeMenu()
+                (NSApplication.shared.delegate as! AppDelegate).updateServersMenu()
+                (NSApplication.shared.delegate as! AppDelegate).updateRunningModeMenu()
                 
                 // do the UI update HERE
                 if let min = result.min(by: {$0.1 < $1.1}){

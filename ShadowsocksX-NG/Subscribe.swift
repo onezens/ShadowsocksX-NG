@@ -9,14 +9,14 @@
 import Foundation
 import Alamofire
 
-class Subscribe: NSObject{
+ class Subscribe: NSObject{
     
-    var subscribeFeed = ""
-    var isActive = true
-    var maxCount = 0 // -1 is not limited
-    var groupName = ""
-    var token = ""
-    var cache = ""
+    @objc var subscribeFeed = ""
+    @objc var isActive = true
+    @objc var maxCount = 0 // -1 is not limited
+    @objc var groupName = ""
+    @objc var token = ""
+    @objc var cache = ""
     
     var profileMgr: ServerProfileManager!
     
@@ -152,7 +152,9 @@ class Subscribe: NSObject{
                         continue
                     }
                     if existResult {
-                        self.profileMgr.profiles.replaceSubrange(Range(existIndex..<existIndex + 1), with: [profile])
+                        if let r = Range(NSMakeRange(existIndex, 1)) {
+                            self.profileMgr.profiles.replaceSubrange(r, with: [profile])
+                        }
                         continue
                     }
                     self.profileMgr.profiles.append(profile)
@@ -160,8 +162,8 @@ class Subscribe: NSObject{
             }
             self.profileMgr.save()
             pushNotification(title: "成功更新订阅", subtitle: "", info: "更新来自\(subscribeFeed)的订阅")
-            (NSApplication.shared().delegate as! AppDelegate).updateServersMenu()
-            (NSApplication.shared().delegate as! AppDelegate).updateRunningModeMenu()
+            (NSApplication.shared.delegate as! AppDelegate).updateServersMenu()
+            (NSApplication.shared.delegate as! AppDelegate).updateRunningModeMenu()
         }
         
         if (!isActive){ return }

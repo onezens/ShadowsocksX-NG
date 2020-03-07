@@ -9,7 +9,7 @@
 import AppKit
 import Foundation
 
-open class StatusItemView: NSControl {
+@objc open class StatusItemView: NSControl {
     static let KB:Float = 1024
     static let MB:Float = KB*1024
     static let GB:Float = MB*1024
@@ -35,8 +35,15 @@ open class StatusItemView: NSControl {
         
         darkMode = SystemThemeChangeHelper.isCurrentDark()
         
-        SystemThemeChangeHelper.addRespond(target: self, selector: #selector(changeMode))
+        SystemThemeChangeHelper.addRespond(target: self, selector: #selector(changeStatus))
     }
+    
+    @objc func changeStatus() {
+        darkMode = SystemThemeChangeHelper.isCurrentDark()
+        setNeedsDisplay()
+    }
+    
+
     
     required public init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
@@ -46,7 +53,10 @@ open class StatusItemView: NSControl {
         statusItem.drawStatusBarBackground(in: dirtyRect, withHighlight: mouseDown)
         
         fontColor = (darkMode||mouseDown) ? NSColor.white : NSColor.black
-        let fontAttributes = [NSFontAttributeName: NSFont.systemFont(ofSize: fontSize), NSForegroundColorAttributeName: fontColor] as [String : Any]
+        let fontAttributes = [
+            NSAttributedString.Key.font : NSFont.systemFont(ofSize: fontSize),
+            NSAttributedString.Key.foregroundColor : fontColor
+        ]
         if showSpeed{
             let upRateString = NSAttributedString(string: upRate+" ↑", attributes: fontAttributes)
             let upRateRect = upRateString.boundingRect(with: NSSize(width: 100, height: 100), options: .usesLineFragmentOrigin)
@@ -105,10 +115,7 @@ open class StatusItemView: NSControl {
         }
     }
     
-    func changeMode() {
-        darkMode = SystemThemeChangeHelper.isCurrentDark()
-        setNeedsDisplay()
-    }
+   
     
     func setIcon(_ image: NSImage) {
         self.image = image

@@ -31,7 +31,7 @@ class VersionChecker: NSObject {
             return false
         }
     }
-    func showAlertView(Title: String, SubTitle: String, ConfirmBtn: String, CancelBtn: String) -> Int {
+    func showAlertView(Title: String, SubTitle: String, ConfirmBtn: String, CancelBtn: String) -> NSApplication.ModalResponse {
         let alertView = NSAlert()
         alertView.messageText = Title
         alertView.informativeText = SubTitle
