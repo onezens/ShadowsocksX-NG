@@ -20,6 +20,7 @@
                 <outlet property="RunningStatusMenuItem" destination="fzk-mE-CEV" id="R4x-gK-Qcw"/>
                 <outlet property="ShowNetworkSpeedItem" destination="a3h-uQ-DuO" id="OLq-K8-rEO"/>
                 <outlet property="addServerMenuItem" destination="A5w-SH-LzR" id="jVl-Aa-BY1"/>
+                <outlet property="addSubConfigMenuItem" destination="MtM-z5-eJ1" id="Ir6-QM-W2O"/>
                 <outlet property="autoModeMenuItem" destination="r07-Gu-aEz" id="9aH-pQ-Rgi"/>
                 <outlet property="checkUpdateAtLaunchMenuItem" destination="3nJ-zQ-Agj" id="bbR-eO-uCo"/>
                 <outlet property="checkUpdateMenuItem" destination="wyZ-4G-qg9" id="Sva-xA-VQY"/>
@@ -154,6 +155,12 @@
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
                                     <action selector="updateSubscribe:" target="Voe-Tx-rLC" id="Vno-Oh-0oc"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Add Subscribe Result From Pasteboard" id="MtM-z5-eJ1">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="addSubConfigFromPb:" target="Voe-Tx-rLC" id="0wz-pw-Otz"/>
                                 </connections>
                             </menuItem>
                             <menuItem title="Add Server Config From Pasteboard" id="A5w-SH-LzR">

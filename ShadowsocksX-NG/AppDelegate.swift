@@ -42,6 +42,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSUserNotificationCenterDele
     @IBOutlet var pingserverMenuItem: NSMenuItem!
     @IBOutlet var showQRCodeMenuItem: NSMenuItem!
     @IBOutlet var scanQRCodeMenuItem: NSMenuItem!
+    @IBOutlet var addSubConfigMenuItem: NSMenuItem!
+    
     @IBOutlet var addServerMenuItem: NSMenuItem!
     @IBOutlet var showBunchJsonExampleFileItem: NSMenuItem!
     @IBOutlet var importBunchJsonFileItem: NSMenuItem!
@@ -184,6 +186,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSUserNotificationCenterDele
                 if isChanged {
                     mgr.save()
                     self.updateServersMenu()
+                    if isEnableShowSpeed() {
+                        PingServers.instance.ping()
+                    }
                 }
             }
         }
@@ -215,9 +220,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSUserNotificationCenterDele
             if defaults.bool(forKey: "AutoUpdateSubscribe") {
                 SubscribeManager.instance.updateAllServerFromSubscribe()
             }
+            if isEnableShowSpeed() {
+                PingServers.instance.ping()
+            }
             DispatchQueue.main.async {
 
             }
+            
         }
     }
 
@@ -354,24 +363,43 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSUserNotificationCenterDele
         ScanQRCodeOnScreen()
     }
     
-    @IBAction func addServerConfigFromPb(_ sender: Any) {
+    func addServerConfigFromString(_ str: String) {
+        let content = str.trimmingCharacters(in: .whitespacesAndNewlines)
+        let configs = content.split(separator: Character("\n"))
+        if configs.count == 0 { return }
+        var serverConfs = [URL]()
+        for config in configs {
+            if config.hasPrefix("ssr://") || config.hasPrefix("ss://"){
+                
+                guard let url = URL(string: String(config)) else {
+                    return
+                }
+                serverConfs.append(url)
+                
+            }
+        }
+        NotificationCenter.default.post(name: NSNotification.Name(rawValue: NOTIFY_FOUND_SS_URL), object: nil, userInfo: [
+            "urls": serverConfs,
+            "source": "ssr config"
+        ])
+    }
+    
+    @IBAction func addSubConfigFromPb(_ sender: Any) {
         
-        guard var ssconfig = NSPasteboard.general.string(forType: .string ) else {
+        guard var pbc = NSPasteboard.general.string(forType: .string ) else {
             return
         }
-        var ssconfigs = [URL]()
-        if ssconfig.hasPrefix("ssr://") || ssconfig.hasPrefix("ss://"){
-            
-            ssconfig = ssconfig.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
-            guard let url = URL(string: ssconfig) else {
-                return
-            }
-            ssconfigs.append(url)
-            NotificationCenter.default.post(name: NSNotification.Name(rawValue: "NOTIFY_FOUND_SS_URL"), object: nil, userInfo: [
-                "urls": ssconfigs,
-                "source": "ssr config"
-            ])
+        pbc = decode64(pbc)
+        addServerConfigFromString(pbc)
+        
+    }
+    
+    @IBAction func addServerConfigFromPb(_ sender: Any) {
+        
+        guard let pbc = NSPasteboard.general.string(forType: .string ) else {
+            return
         }
+        addServerConfigFromString(pbc)
         
     }
     
@@ -515,11 +543,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSUserNotificationCenterDele
     }
     
     @IBAction func showSpeedTap(_ sender: NSMenuItem) {
-        let defaults = UserDefaults.standard
-        var enable = defaults.bool(forKey: "enable_showSpeed")
-        enable = !enable
-        setUpMenu(enable)
-        defaults.set(enable, forKey: "enable_showSpeed")
+        setUpMenu(switchShowSpeedStatus())
         updateMainMenu()
     }
 
@@ -672,6 +696,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSUserNotificationCenterDele
         serversMenuItem.submenu?.removeAllItems()
         let showQRItem = showQRCodeMenuItem
         let scanQRItem = scanQRCodeMenuItem
+        let addSubItem = addSubConfigMenuItem
         let addServerItem = addServerMenuItem
         let preferencesItem = serversPreferencesMenuItem
         let showBunch = showBunchJsonExampleFileItem
@@ -739,6 +764,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSUserNotificationCenterDele
         serversMenuItem.submenu?.addItem(autoUpdateSubscribeItem!)
         autoUpdateSubscribeItem?.state = NSControl.StateValue(rawValue: UserDefaults.standard.bool(forKey: "AutoUpdateSubscribe") ? 1 : 0)
         serversMenuItem.submenu?.addItem(updateSubscribeItem!)
+        serversMenuItem.submenu?.addItem(addSubItem!)
         serversMenuItem.submenu?.addItem(showQRItem!)
         serversMenuItem.submenu?.addItem(scanQRItem!)
         serversMenuItem.submenu?.addItem(addServerItem!)
@@ -797,7 +823,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSUserNotificationCenterDele
         if let urlString = event.paramDescriptor(forKeyword: AEKeyword(keyDirectObject))?.stringValue {
             if URL(string: urlString) != nil {
                 NotificationCenter.default.post(
-                    name: Notification.Name(rawValue: "NOTIFY_FOUND_SS_URL"), object: nil
+                    name: Notification.Name(rawValue: NOTIFY_FOUND_SS_URL), object: nil
                     , userInfo: [
                         "urls": splitProfile(url: urlString, max: 5).map({ (item: String) -> URL in
                             return URL(string: item)!

@@ -8,6 +8,7 @@
 
 import Foundation
 
+private let kEnableShowSpeedKey = "enable_showSpeed"
 
 extension String {
     var localized: String {
@@ -24,6 +25,18 @@ extension Data {
         let hexBytes = digest.map { String(format: "%02hhx", $0) }
         return hexBytes.joined(separator: "")
     }
+}
+
+func switchShowSpeedStatus() -> Bool {
+    var enable = isEnableShowSpeed()
+    enable = !enable
+    UserDefaults.standard.set(enable, forKey: kEnableShowSpeedKey)
+    return enable
+}
+
+func isEnableShowSpeed() -> Bool {
+    let defaults = UserDefaults.standard
+    return defaults.bool(forKey: kEnableShowSpeedKey)
 }
 
 func splitProfile(url: String, max: Int) -> [String] {

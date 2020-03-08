@@ -241,6 +241,61 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		0960EA662414037F00A5CCE7 /* Utils */ = {
+			isa = PBXGroup;
+			children = (
+				9BEEF06D1D04DCE400FC52B3 /* ServerProfile.swift */,
+				9BEEF06F1D04DDB100FC52B3 /* ServerProfileManager.swift */,
+				0877D6531EF1E65600126865 /* Subscribe.swift */,
+				08635C761EF750FA00F1D25E /* SubscribeManager.swift */,
+				08BDBB471E2361BD00C4BBC2 /* VersionChecker.swift */,
+				083BF8381D82759600831C68 /* StatusItemView.swift */,
+				083BF83A1D8275A800831C68 /* SystemThemeChangeHelper.swift */,
+				9BEEF0771D04FE8A00FC52B3 /* LaunchAgentUtils.swift */,
+				9B3FFF0C1D05FEB30019A709 /* Utils.swift */,
+				9B3FFF201D08826E0019A709 /* PACUtils.swift */,
+				083BF8341D82742200831C68 /* NetWorkMonitor.swift */,
+				083BF8351D82742200831C68 /* PingClient.swift */,
+				9B3FFF131D0705810019A709 /* Notifications.swift */,
+				9B3FFF1D1D0732660019A709 /* Utils.m */,
+				9B3FFF1F1D0734060019A709 /* Utils.h */,
+			);
+			name = Utils;
+			sourceTree = "<group>";
+		};
+		0960EA672414039700A5CCE7 /* Proxy */ = {
+			isa = PBXGroup;
+			children = (
+				9B3FFF4D1D09D9D50019A709 /* ProxyConfHelper.h */,
+				9B3FFF4E1D09D9D50019A709 /* ProxyConfHelper.m */,
+				9B3FFF501D09DAEA0019A709 /* proxy_conf_helper_version.h */,
+				9BA04B211D23D5A5005AAD7F /* ProxyConfTool.h */,
+				9BA04B221D23D5A5005AAD7F /* ProxyConfTool.m */,
+			);
+			name = Proxy;
+			sourceTree = "<group>";
+		};
+		0960EA68241403C400A5CCE7 /* Launch */ = {
+			isa = PBXGroup;
+			children = (
+				9B3FFF151D072FDE0019A709 /* LaunchAtLoginController.h */,
+				9B3FFF161D072FDE0019A709 /* LaunchAtLoginController.m */,
+			);
+			name = Launch;
+			sourceTree = "<group>";
+		};
+		0960EA69241403E700A5CCE7 /* Main */ = {
+			isa = PBXGroup;
+			children = (
+				9BB706A51D1B982300551F0E /* SWBApplication.m */,
+				9BB706A61D1B982300551F0E /* SWBApplication.h */,
+				9B0BFFEC1D0460A70040E62B /* MainMenu.xib */,
+				9B0BFFE81D0460A70040E62B /* AppDelegate.swift */,
+				9B3FFF511D09DBA20019A709 /* ShadowsocksX-NG-Bridging-Header.h */,
+			);
+			name = Main;
+			sourceTree = "<group>";
+		};
 		33F4F299F89330966F4526E4 /* Pods */ = {
 			isa = PBXGroup;
 			children = (
@@ -317,37 +372,14 @@
 		9B0BFFE71D0460A70040E62B /* ShadowsocksX-NG */ = {
 			isa = PBXGroup;
 			children = (
-				9BB706A51D1B982300551F0E /* SWBApplication.m */,
-				9BB706A61D1B982300551F0E /* SWBApplication.h */,
-				9B3FFF511D09DBA20019A709 /* ShadowsocksX-NG-Bridging-Header.h */,
-				9B3FFF151D072FDE0019A709 /* LaunchAtLoginController.h */,
-				9B3FFF161D072FDE0019A709 /* LaunchAtLoginController.m */,
+				0960EA68241403C400A5CCE7 /* Launch */,
+				0960EA672414039700A5CCE7 /* Proxy */,
+				0960EA662414037F00A5CCE7 /* Utils */,
 				9B3FFF0B1D05D8B80019A709 /* UI */,
+				0960EA69241403E700A5CCE7 /* Main */,
 				9B07EFB01D048E900052D9DF /* Support Files */,
-				9B0BFFE81D0460A70040E62B /* AppDelegate.swift */,
 				9B0BFFEA1D0460A70040E62B /* Assets.xcassets */,
-				9B0BFFEC1D0460A70040E62B /* MainMenu.xib */,
 				9B0BFFEF1D0460A70040E62B /* Info.plist */,
-				9BEEF06D1D04DCE400FC52B3 /* ServerProfile.swift */,
-				9BEEF06F1D04DDB100FC52B3 /* ServerProfileManager.swift */,
-				0877D6531EF1E65600126865 /* Subscribe.swift */,
-				08635C761EF750FA00F1D25E /* SubscribeManager.swift */,
-				08BDBB471E2361BD00C4BBC2 /* VersionChecker.swift */,
-				083BF8381D82759600831C68 /* StatusItemView.swift */,
-				083BF83A1D8275A800831C68 /* SystemThemeChangeHelper.swift */,
-				9BEEF0771D04FE8A00FC52B3 /* LaunchAgentUtils.swift */,
-				9B3FFF0C1D05FEB30019A709 /* Utils.swift */,
-				9B3FFF201D08826E0019A709 /* PACUtils.swift */,
-				083BF8341D82742200831C68 /* NetWorkMonitor.swift */,
-				083BF8351D82742200831C68 /* PingClient.swift */,
-				9B3FFF131D0705810019A709 /* Notifications.swift */,
-				9B3FFF1D1D0732660019A709 /* Utils.m */,
-				9B3FFF1F1D0734060019A709 /* Utils.h */,
-				9B3FFF4D1D09D9D50019A709 /* ProxyConfHelper.h */,
-				9B3FFF4E1D09D9D50019A709 /* ProxyConfHelper.m */,
-				9B3FFF501D09DAEA0019A709 /* proxy_conf_helper_version.h */,
-				9BA04B211D23D5A5005AAD7F /* ProxyConfTool.h */,
-				9BA04B221D23D5A5005AAD7F /* ProxyConfTool.m */,
 			);
 			path = "ShadowsocksX-NG";
 			sourceTree = "<group>";
@@ -903,6 +935,7 @@
 					"$(PROJECT_DIR)",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.11;
+				MARKETING_VERSION = 1.4.3;
 				PRODUCT_BUNDLE_IDENTIFIER = cc.onezen.ozss;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -936,6 +969,7 @@
 					"$(PROJECT_DIR)",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.11;
+				MARKETING_VERSION = 1.4.3;
 				PRODUCT_BUNDLE_IDENTIFIER = cc.onezen.ozss;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
