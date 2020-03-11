@@ -50,6 +50,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSUserNotificationCenterDele
     @IBOutlet var exportAllServerProfileItem: NSMenuItem!
     @IBOutlet var serversPreferencesMenuItem: NSMenuItem!
     
+    @IBOutlet weak var serverAccessTestItem: NSMenuItem!
     @IBOutlet weak var lanchAtLoginMenuItem: NSMenuItem!
     @IBOutlet weak var connectAtLaunchMenuItem: NSMenuItem!
     @IBOutlet weak var ShowNetworkSpeedItem: NSMenuItem!
@@ -59,11 +60,16 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSUserNotificationCenterDele
     @IBOutlet var manualUpdateSubscribeMenuItem: NSMenuItem!
     @IBOutlet var editSubscribeMenuItem: NSMenuItem!
     
+    lazy var accessTestItemOriTitle: String = {
+        return self.serverAccessTestItem.title
+    }()
+    
     // MARK: Variables
     var statusItemView:StatusItemView!
     var statusItem: NSStatusItem?
     var speedMonitor:NetWorkMonitor?
     var globalSubscribeFeed: Subscribe!
+    var doAccessTestBeforeMode: String?
 
     // MARK: Application function
 
@@ -223,9 +229,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSUserNotificationCenterDele
             if isEnableShowSpeed() {
                 PingServers.instance.ping()
             }
-            DispatchQueue.main.async {
-
-            }
             
         }
     }
@@ -279,6 +282,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSUserNotificationCenterDele
         SyncSSLocal()
         applyConfig()
     }
+    
 
     @IBAction func updateGFWList(_ sender: NSMenuItem) {
         UpdatePACFromGFWList()
@@ -542,6 +546,32 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSUserNotificationCenterDele
         PingServers.instance.ping()
     }
     
+
+    
+    func prepareAccessTest() {
+        let defaults = UserDefaults.standard
+        defaults.set(true, forKey: "ShadowsocksOn")
+        doAccessTestBeforeMode = defaults.value(forKey: "ShadowsocksRunningMode") as? String
+        defaults.setValue("global", forKey: "ShadowsocksRunningMode")
+        defaults.setValue("", forKey: "ACLFileName")
+        updateRunningModeMenu()
+        updateMainMenu()
+        SyncSSLocal()
+        applyConfig()
+    }
+    
+    func finishAccessTest() {
+        self.serverAccessTestItem.title = self.accessTestItemOriTitle +  "    可用：\(PingServers.instance.canAccessCount)  |  总共：\(ServerProfileManager.instance.profiles.count)"
+        UserDefaults.standard.setValue(doAccessTestBeforeMode, forKey: "ShadowsocksRunningMode")
+    }
+    
+    @IBAction func doAccessTest(_ sender: NSMenuItem) {
+        
+        self.serverAccessTestItem.title = self.accessTestItemOriTitle + "    正在测试中..."
+        prepareAccessTest()
+        PingServers.instance.testAgentAccess()
+    }
+    
     @IBAction func showSpeedTap(_ sender: NSMenuItem) {
         setUpMenu(switchShowSpeedStatus())
         updateMainMenu()
@@ -580,6 +610,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSUserNotificationCenterDele
     }
     
     // MARK: this function is use to update menu bar
+    
 
     func updateRunningModeMenu() {
         let defaults = UserDefaults.standard
@@ -718,6 +749,15 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSUserNotificationCenterDele
                 if !neverSpeedTestBefore {
                     item.title += "  - failed"
                 }
+            }
+            if !PingServers.instance.neverFireAccessTestBefore {
+                
+                if p.accessTimeOut >= 0 {
+                    item.title += "  - A: \(Int(p.accessTimeOut)) ms"
+                }else{
+                    item.title += "  - A: failed"
+                }
+                
             }
             if mgr.getActiveProfileId() == p.uuid {
                 item.state = NSControl.StateValue(rawValue: 1)

@@ -8,22 +8,28 @@
 
 
 import Foundation
+import Alamofire
 
 fileprivate func < <T : Comparable>(lhs: T?, rhs: T?) -> Bool {
-  switch (lhs, rhs) {
-  case let (l?, r?):
-    return l < r
-  case (nil, _?):
-    return true
-  default:
-    return false
-  }
+    switch (lhs, rhs) {
+    case let (l?, r?):
+        return l < r
+    case (nil, _?):
+        return true
+    default:
+        return false
+    }
 }
 
 
 public typealias SimplePingClientCallback = (String?)->()
 
 
+enum AccessTestHostType: String {
+    case `default` = "https://www.google.com/"
+    case Baidu = "https://www.baidu.com/"
+    case Twitter = "https://www.twitter.com/"
+}
 
 
 class PingServers:NSObject{
@@ -32,6 +38,18 @@ class PingServers:NSObject{
     let SerMgr = ServerProfileManager.instance
     var fastest:String?
     var fastest_id : Int=0
+    var isFireAccessTest = false
+    var neverFireAccessTestBefore = true
+    var canAccessCount = 0
+    var accessTimeout:TimeInterval  = 2
+    var accessHost = "https://www.google.com/"
+
+    
+    lazy var sharedSessionManager: Alamofire.SessionManager = {
+        let configuration = URLSessionConfiguration.default
+        configuration.timeoutIntervalForRequest = self.accessTimeout // 默认超时时间2s
+        return Alamofire.SessionManager(configuration: configuration)
+    }()
     
     //    func ping(_ i:Int=0){
     //        if i == 0{
@@ -131,7 +149,7 @@ class PingServers:NSObject{
     }
     
     
-
+    
     func ping(_ i:Int=0){
         
         neverSpeedTestBefore = false
@@ -167,7 +185,7 @@ class PingServers:NSObject{
                 if let min = result.min(by: {$0.1 < $1.1}){
                     self.fastest = String(describing: min.1)
                     self.fastest_id  = min.0
-
+                    
                     let notice = NSUserNotification()
                     notice.title = "Ping测试完成！"
                     notice.subtitle = "最快的是\(self.SerMgr.profiles[self.fastest_id].remark) \(self.SerMgr.profiles[self.fastest_id].serverHost) \(self.SerMgr.profiles[self.fastest_id].latency!)ms"
@@ -180,6 +198,79 @@ class PingServers:NSObject{
         
         
     }
+}
+
+extension PingServers {
+    
+    // 是否可以访问代理测试
+    func testAgentAccess() {
+        
+        
+        if isFireAccessTest {
+            return
+        }
+        neverFireAccessTestBefore = false
+        isFireAccessTest = true
+        //依次遍历所有的
+        let spMgr = ServerProfileManager.instance
+        DispatchQueue.global().async {
+            
+            var canAccessCount = 0
+            var fastProfile: ServerProfile?
+            for profile in spMgr.profiles {
+                if profile.uuid != spMgr.getActiveProfileId() {
+                    spMgr.setActiveProfiledId(profile.uuid)
+                    SyncSSLocal()
+                }
+                profile.accessTimeOut = self.testAccess(profile)
+                if profile.accessTimeOut > 0 {
+                    canAccessCount += 1
+                    (fastProfile == nil || profile.accessTimeOut < fastProfile?.accessTimeOut) ? fastProfile = profile : nil
+                }
+                
+            }
+            self.canAccessCount = canAccessCount
+            print("access all test done, access: \(canAccessCount) totoal: \(spMgr.profiles.count)")
+            self.isFireAccessTest = false
+            
+            //设置为当前最快的
+            if let fsp = fastProfile {
+                spMgr.setActiveProfiledId(fsp.uuid)
+                SyncSSLocal()
+                let notice = NSUserNotification()
+                notice.title = "访问测试完成！"
+                notice.subtitle = "最快的是 \(fsp.serverHost) \(Int(fsp.accessTimeOut))ms"
+                NSUserNotificationCenter.default.deliver(notice)
+            }
+            
+            
+            DispatchQueue.main.async {
+                let appDel = NSApplication.shared.delegate as! AppDelegate
+                appDel.finishAccessTest()
+                appDel.updateServersMenu()
+                appDel.updateRunningModeMenu()
+            }
+        }
+        
+    }
+    
+    func testAccess(_ server: ServerProfile) -> TimeInterval{
+        let sem = DispatchSemaphore(value: 0)
+        var timeout: TimeInterval = -1
+        PingServers.instance.sharedSessionManager.request(self.accessHost, method: .head, parameters: nil, encoding:  JSONEncoding.default, headers: nil).response { (res) in
+            
+            if res.response?.statusCode == 200 {
+                timeout = res.timeline.latency * 1000
+                print("\(server.serverHost) can access! \(self.accessHost) timeout: \(timeout)")
+            }else {
+                print("\(server.serverHost) can not access! ")
+            }
+            sem.signal()
+        }
+        sem.wait()
+        return timeout
+    }
+    
 }
 
 

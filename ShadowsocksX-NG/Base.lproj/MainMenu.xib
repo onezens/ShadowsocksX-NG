@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="15705" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="15400" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
     <dependencies>
         <deployment identifier="macosx"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="15705"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="15400"/>
     </dependencies>
     <objects>
         <customObject id="-2" userLabel="File's Owner" customClass="NSApplication">
@@ -36,6 +36,7 @@
                 <outlet property="proxyMenuItem" destination="diI-fB-Rss" id="Qjk-9U-3Qy"/>
                 <outlet property="runningStatusMenuItem" destination="fzk-mE-CEV" id="Vwm-Rg-Ykn"/>
                 <outlet property="scanQRCodeMenuItem" destination="Qe6-bF-paT" id="XHa-pa-nCa"/>
+                <outlet property="serverAccessTestItem" destination="9Km-OS-wuz" id="n4a-pw-PqR"/>
                 <outlet property="serversMenuItem" destination="u5M-hQ-VSc" id="8gp-SY-Y4U"/>
                 <outlet property="serversPreferencesMenuItem" destination="M5r-E7-44f" id="voe-SX-k6a"/>
                 <outlet property="showBunchJsonExampleFileItem" destination="pdy-JE-50Q" id="aWi-DB-deq"/>
@@ -219,6 +220,12 @@
                     <modifierMask key="keyEquivalentModifierMask"/>
                     <connections>
                         <action selector="doPingTest:" target="Voe-Tx-rLC" id="rRs-7S-tvD"/>
+                    </connections>
+                </menuItem>
+                <menuItem title="Server access test " id="9Km-OS-wuz">
+                    <modifierMask key="keyEquivalentModifierMask"/>
+                    <connections>
+                        <action selector="doAccessTest:" target="Voe-Tx-rLC" id="Kyn-6p-wFM"/>
                     </connections>
                 </menuItem>
                 <menuItem title="Advance Preference ..." id="bZ3-fy-34d">

@@ -24,6 +24,7 @@ class ServerProfile: NSObject {
     @objc var ssrObfs:String = "plain"
     @objc var ssrObfsParam:String = ""
     @objc var ssrGroup: String = ""
+    @objc var accessTimeOut: TimeInterval = -1
     
     var latency:String?
     
